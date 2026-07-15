@@ -3,68 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트폰 충전 노이즈 및 RC 필터 시뮬레이터</title>
+    <title>스마트폰 충전 전압 호환성 & 터치 노이즈 시뮬레이터</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --primary: #1e2d42;
+            --primary-light: #2c4260;
+            --accent: #c9a054;
+            --bg: #f7f9fa;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --success: #2e7d32;
+            --warning: #ef6c00;
+            --danger: #c62828;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
             padding: 20px;
+            line-height: 1.6;
         }
+
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
-            background: #fff;
+            background: var(--card-bg);
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
+
         h1 {
             text-align: center;
-            color: #0056b3;
-            margin-bottom: 30px;
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-weight: 700;
         }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
         .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 25px;
             margin-bottom: 30px;
         }
-        @media (max-width: 768px) {
+
+        @media (max-width: 900px) {
             .grid {
                 grid-template-columns: 1fr;
             }
         }
+
         .control-group {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 25px;
+            border-radius: 10px;
             border: 1px solid #e9ecef;
         }
+
+        .result-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        h3 {
+            margin-top: 0;
+            color: var(--primary);
+            border-left: 4px solid var(--accent);
+            padding-left: 10px;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
         label {
             display: block;
             font-weight: bold;
             margin-top: 15px;
             margin-bottom: 5px;
+            font-size: 0.95rem;
         }
+
         select, input[type="range"] {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border-radius: 6px;
-            border: 1px solid #ced4da;
+            border: 1.5px solid #ced4da;
             box-sizing: border-box;
+            transition: border-color 0.2s;
         }
-        .value-display {
-            font-size: 0.9em;
-            color: #666;
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .range-value {
+            font-weight: bold;
+            min-width: 65px;
             text-align: right;
-            margin-top: 2px;
+            color: var(--primary);
         }
+
+        /* 결과 알림창 스타일 */
+        .result-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .status-safe {
+            background-color: #e8f5e9;
+            color: var(--success);
+            border: 1.5px solid #a5d6a7;
+        }
+
+        .status-warning {
+            background-color: #fff3e0;
+            color: var(--warning);
+            border: 1.5px solid #ffcc80;
+        }
+
+        .status-danger {
+            background-color: #ffebee;
+            color: var(--danger);
+            border: 1.5px solid #ffcdd2;
+        }
+
+        .diagnostic-card {
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 300px;
             width: 100%;
             background: #fff;
             border: 1px solid #e9ecef;
@@ -72,83 +168,109 @@
             padding: 10px;
             box-sizing: border-box;
         }
-        .theory-card {
+
+        .spec-badge {
             background: #eef1f6;
-            border-left: 5px solid #0056b3;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 0 8px 8px 0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: inline-block;
+            border-left: 3px solid var(--accent);
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>스마트폰 충전 노이즈 & RC 필터 시뮬레이터</h1>
+    <h1>스마트폰 충전 전압 호환성 & 터치 노이즈 시뮬레이터</h1>
+    <div class="subtitle">기종별 정격 전압 호환 검증 및 저역통과필터(RC LPF) 신호 무결성 해석 도구</div>
     
     <div class="grid">
         <div class="control-group">
-            <h3>📱 스마트폰 기종 선택</h3>
-            <label for="device">기종 선택</label>
-            <select id="device" onchange="updateDeviceSettings()">
+            <h3>📱 1. 스마트폰 및 충전기 사양 선택</h3>
+            
+            <label for="device">대상 스마트폰 기종</label>
+            <select id="device" onchange="calculateAndPlot()">
                 <optgroup label="Apple iPhone">
-                    <option value="iphone15pro">iPhone 15 Pro / Pro Max (USB-PD 27W)</option>
-                    <option value="iphone15">iPhone 15 / Plus (USB-PD 20W)</option>
-                    <option value="iphone14pro">iPhone 14 Pro / Pro Max (USB-PD 27W)</option>
-                    <option value="iphone14">iPhone 14 / Plus (USB-PD 20W)</option>
-                    <option value="iphone13pro">iPhone 13 Pro / Pro Max (USB-PD 23W)</option>
-                    <option value="iphone13">iPhone 13 / mini (USB-PD 20W)</option>
-                    <option value="iphone12pro">iPhone 12 Pro / Pro Max (USB-PD 20W)</option>
-                    <option value="iphone12">iPhone 12 / mini (USB-PD 20W)</option>
-                    <option value="iphone11pro">iPhone 11 Pro / Pro Max (USB-PD 18W)</option>
-                    <option value="iphone11">iPhone 11 (USB-PD 18W)</option>
+                    <option value="iphone15pro">iPhone 15 Pro / Pro Max (USB-PD)</option>
+                    <option value="iphone15">iPhone 15 / Plus (USB-PD)</option>
+                    <option value="iphone14pro">iPhone 14 Pro / Pro Max (USB-PD)</option>
+                    <option value="iphone14">iPhone 14 / Plus (USB-PD)</option>
+                    <option value="iphone13pro">iPhone 13 Pro / Pro Max (USB-PD)</option>
+                    <option value="iphone13">iPhone 13 (USB-PD)</option>
+                    <option value="iphone12pro">iPhone 12 Pro / Pro Max (USB-PD)</option>
+                    <option value="iphone12">iPhone 12 (USB-PD)</option>
+                    <option value="iphone11pro">iPhone 11 Pro / Pro Max (USB-PD)</option>
+                    <option value="iphone11">iPhone 11 (USB-PD)</option>
                 </optgroup>
                 <optgroup label="Samsung Galaxy">
-                    <option value="galaxys26ultra">Galaxy S26 Ultra (SFC 2.0 45W) *예상</option>
-                    <option value="galaxys26">Galaxy S26 / S26+ (SFC 25W/45W) *예상</option>
-                    <option value="galaxys25ultra">Galaxy S25 Ultra (SFC 2.0 45W)</option>
-                    <option value="galaxys25">Galaxy S25 / S25+ (SFC 25W/45W)</option>
-                    <option value="galaxys24ultra">Galaxy S24 Ultra (SFC 2.0 45W)</option>
-                    <option value="galaxys24">Galaxy S24 / S24+ (SFC 25W/45W)</option>
-                    <option value="galaxys23ultra">Galaxy S23 Ultra (SFC 2.0 45W)</option>
-                    <option value="galaxys23">Galaxy S23 / S23+ (SFC 25W/45W)</option>
-                    <option value="galaxys22ultra">Galaxy S22 Ultra (SFC 2.0 45W)</option>
-                    <option value="galaxys22">Galaxy S22 / S22+ (SFC 25W/45W)</option>
-                    <option value="galaxys21ultra">Galaxy S21 Ultra (SFC 25W)</option>
-                    <option value="galaxys21">Galaxy S21 / S21+ (SFC 25W)</option>
-                    <option value="galaxys20ultra">Galaxy S20 Ultra (SFC 2.0 45W)</option>
-                    <option value="galaxys20">Galaxy S20 / S20+ (SFC 25W)</option>
+                    <option value="galaxys26ultra">Galaxy S26 Ultra (SFC 2.0)</option>
+                    <option value="galaxys26">Galaxy S26 / S26+ (SFC)</option>
+                    <option value="galaxys25ultra">Galaxy S25 Ultra (SFC 2.0)</option>
+                    <option value="galaxys25">Galaxy S25 / S25+ (SFC)</option>
+                    <option value="galaxys24ultra">Galaxy S24 Ultra (SFC 2.0)</option>
+                    <option value="galaxys24">Galaxy S24 / S24+ (SFC)</option>
+                    <option value="galaxys23ultra">Galaxy S23 Ultra (SFC 2.0)</option>
+                    <option value="galaxys23">Galaxy S23 / S23+ (SFC)</option>
+                    <option value="galaxys22ultra">Galaxy S22 Ultra (SFC 2.0)</option>
+                    <option value="galaxys22">Galaxy S22 / S22+ (SFC)</option>
+                    <option value="galaxys21ultra">Galaxy S21 Ultra (SFC)</option>
+                    <option value="galaxys21">Galaxy S21 (SFC)</option>
+                    <option value="galaxys20ultra">Galaxy S20 Ultra (SFC 2.0)</option>
+                    <option value="galaxys20">Galaxy S20 (SFC)</option>
                 </optgroup>
             </select>
+            <div class="spec-badge" id="spec-val">정격 스펙 로딩 중...</div>
 
-            <h3 style="margin-top:25px;">🔌 LPF (Low Pass Filter) 회로 설계</h3>
-            
-            <label for="resistance">저항 (R)</label>
-            <input type="range" id="resistance" min="100" max="10000" step="100" value="1000" oninput="calculateAndPlot()">
-            <div class="value-display" id="r-val">1000 Ω</div>
+            <hr style="border:0; border-top: 1px solid #ddd; margin: 20px 0;">
 
-            <label for="capacitance">커패시턴스 (C)</label>
-            <input type="range" id="capacitance" min="1" max="100" step="1" value="10" oninput="calculateAndPlot()">
-            <div class="value-display" id="c-val">10 μF</div>
+            <label for="voltage">사용할 충전기 인가 전압 (V)</label>
+            <div class="range-container">
+                <input type="range" id="voltage" min="3" max="22" step="0.5" value="9" oninput="calculateAndPlot()">
+                <span class="range-value" id="voltage-val">9.0 V</span>
+            </div>
+
+            <label for="noise">충전기 리플 노이즈 진폭 (V)</label>
+            <div class="range-container">
+                <input type="range" id="noise" min="0.1" max="2.0" step="0.1" value="0.5" oninput="calculateAndPlot()">
+                <span class="range-value" id="noise-val">0.5 V</span>
+            </div>
+            <p style="font-size:0.78rem; color:#777; margin: 3px 0 15px 0;">* 정품 충전기는 0.2V 이하, 저가형 비정품은 0.8V 이상의 리플 전압 노이즈가 발생합니다.</p>
+
+            <h3 style="margin-top:25px;">🔌 2. 기기 내부 RC 필터 파라미터 조절</h3>
             
-            <label for="noiseFreq">전원공급장치 고주파 노이즈 주파수</label>
-            <input type="range" id="noiseFreq" min="100" max="5000" step="100" value="1000" oninput="calculateAndPlot()">
-            <div class="value-display" id="freq-val">1000 Hz</div>
+            <label for="resistance">필터 내부 저항 (R)</label>
+            <div class="range-container">
+                <input type="range" id="resistance" min="100" max="10000" step="100" value="1000" oninput="calculateAndPlot()">
+                <span class="range-value" id="r-val">1000 Ω</span>
+            </div>
+
+            <label for="capacitance">필터 내부 커패시턴스 (C)</label>
+            <div class="range-container">
+                <input type="range" id="capacitance" min="1" max="100" step="1" value="10" oninput="calculateAndPlot()">
+                <span class="range-value" id="c-val">10 μF</span>
+            </div>
         </div>
 
-        <div>
-            <div class="chart-container">
-                <canvas id="signalChart"></canvas>
+        <div class="result-group">
+            <div>
+                <h3>📊 3. 호환성 및 신호 분석 결과</h3>
+                
+                <div id="status-box" class="result-box status-safe">
+                    판단 중...
+                </div>
+
+                <div class="diagnostic-card" id="analysis-text">
+                    기종 데이터 분석 중...
+                </div>
             </div>
-            
-            <div class="theory-card">
-                <h4>📊 회로 해석 데이터</h4>
-                <p>📍 <strong>차단 주파수 (Cut-off Frequency, $f_c$):</strong> <span id="cutoff-val" style="font-weight:bold; color:#0056b3;">- Hz</span></p>
-                <p>📍 <strong>선택 기종 정격 입력:</strong> <span id="spec-val" style="font-weight:bold;">-</span></p>
-                <p>📍 <strong>노이즈 감쇄율 (Attenuation):</strong> <span id="atten-val" style="font-weight:bold; color:#d9534f;">- %</span></p>
-                <p style="font-size: 0.85em; color: #666; line-height: 1.4;">
-                    * 차단 주파수 $f_c = \frac{1}{2\pi RC}$보다 높은 주파수의 노이즈 전압 성분은 감쇄하여 터치 패널로 유입되는 신호 무결성(Signal Integrity)을 보존합니다.
-                </p>
+
+            <div>
+                <label>실시간 전압 유입 및 필터링 후 신호 파형 (Waveform)</label>
+                <div class="chart-container">
+                    <canvas id="signalChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -156,98 +278,146 @@
 
 <div class="container" style="margin-top: 20px; background: #1e2d42; color: #fff;">
     <h3 style="color: #c9a054; margin-top: 0;">🛠️ 전자공학 설계 원리 (System Design Note)</h3>
-    <p style="color: #e9ecef; font-size: 0.95rem; line-height: 1.6;">
-        이 시뮬레이터는 저가형 고속 충전기를 연결했을 때 디스플레이 터치 IC 신호선에 고주파 리플 노이즈가 유입되어 발생하는 정전식 감도 저하 문제를 해결하기 위해 설계되었습니다. 
-        전기회로의 <strong>2계 과도응답 미분방정식</strong> 모델과 주파수 도메인에서의 <strong>RC Low-pass Filter</strong> 감쇄 이론을 기반으로 수식 연산이 구동됩니다.
+    <p style="color: #e9ecef; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px;">
+        이 시뮬레이터는 저가형 충전기를 연결했을 때 스마트폰 충전 라인을 타고 전자기기 내부 디스플레이 터치 IC 신호선까지 고주파 리플 노이즈가 타고 들어와 터치 입력이 감쇄/왜곡되는 <strong>고스트 터치(Ghost Touch)</strong> 현상을 모의 해석합니다.
     </p>
     <p style="color: #bdc8d5; font-size: 0.9rem; margin-bottom: 0;">
-        사용자가 설정하는 회로 매개변수 값에 따라 고주파 노이즈가 실시간으로 필터링되어 원본 전압 신호가 복원되는 파형을 모니터링할 수 있도록 자바스크립트 수식으로 구현하였습니다.
+        선택한 기종의 보호 회로 작동 범위전압과 입력 충전기 전압의 정격 여부를 대조하여 1차 호환성을 판별하고, <strong>차단 주파수 $f_c = \frac{1}{2\pi RC}$</strong>를 따르는 1차 RC 저역통과필터(Low-pass Filter) 모델을 거쳐 감쇄되는 리플 노이즈 수준을 실시간 200단계 전압 신호 파형으로 시각화해 줍니다.
     </p>
 </div>
 
 <script>
+// 기종별 상세 수용 스펙 데이터
 const deviceSpecs = {
     // Apple
-    "iphone15pro": { volt: 9.0, amp: 3.0, noiseAmp: 0.8, desc: "9V / 3A (최대 27W USB-PD)" },
-    "iphone15": { volt: 9.0, amp: 2.22, noiseAmp: 0.9, desc: "9V / 2.22A (최대 20W USB-PD)" },
-    "iphone14pro": { volt: 9.0, amp: 3.0, noiseAmp: 0.85, desc: "9V / 3.0A (최대 27W USB-PD)" },
-    "iphone14": { volt: 9.0, amp: 2.22, noiseAmp: 0.95, desc: "9V / 2.22A (최대 20W USB-PD)" },
-    "iphone13pro": { volt: 9.0, amp: 2.56, noiseAmp: 0.9, desc: "9V / 2.56A (최대 23W USB-PD)" },
-    "iphone13": { volt: 9.0, amp: 2.22, noiseAmp: 1.0, desc: "9V / 2.22A (최대 20W USB-PD)" },
-    "iphone12pro": { volt: 9.0, amp: 2.22, noiseAmp: 1.0, desc: "9V / 2.22A (최대 20W USB-PD)" },
-    "iphone12": { volt: 9.0, amp: 2.22, noiseAmp: 1.1, desc: "9V / 2.22A (최대 20W USB-PD)" },
-    "iphone11pro": { volt: 9.0, amp: 2.0, noiseAmp: 1.2, desc: "9V / 2.0A (최대 18W USB-PD)" },
-    "iphone11": { volt: 5.0, amp: 3.0, noiseAmp: 1.3, desc: "5V / 3A 또는 9V / 2A (최대 18W USB-PD)" },
+    "iphone15pro": { name: "iPhone 15 Pro / Pro Max", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.15, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 27W)" },
+    "iphone15": { name: "iPhone 15 / Plus", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.18, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 20W)" },
+    "iphone14pro": { name: "iPhone 14 Pro / Pro Max", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.16, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 27W)" },
+    "iphone14": { name: "iPhone 14 / Plus", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.20, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 20W)" },
+    "iphone13pro": { name: "iPhone 13 Pro / Pro Max", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.17, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 23W)" },
+    "iphone13": { name: "iPhone 13 / mini", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.22, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 20W)" },
+    "iphone12pro": { name: "iPhone 12 Pro / Pro Max", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.18, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 20W)" },
+    "iphone12": { name: "iPhone 12 / mini", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.23, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 20W)" },
+    "iphone11pro": { name: "iPhone 11 Pro / Pro Max", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.20, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 18W)" },
+    "iphone11": { name: "iPhone 11", minV: 4.5, maxV: 9.3, supportV: [5.0, 9.0], noiseTol: 0.25, desc: "정격 입력: 5.0V, 9.0V (USB-PD 최대 18W)" },
 
     // Samsung
-    "galaxys26ultra": { volt: 15.0, amp: 3.0, noiseAmp: 0.5, desc: "15V / 3A (최대 45W Super Fast Charging 2.0) *예상" },
-    "galaxys26": { volt: 9.0, amp: 2.77, noiseAmp: 0.6, desc: "9V / 2.77A (최대 25W Super Fast Charging) *예상" },
-    "galaxys25ultra": { volt: 15.0, amp: 3.0, noiseAmp: 0.55, desc: "15V / 3A (최대 45W Super Fast Charging 2.0)" },
-    "galaxys25": { volt: 9.0, amp: 2.77, noiseAmp: 0.65, desc: "9V / 2.77A (최대 25W Super Fast Charging)" },
-    "galaxys24ultra": { volt: 15.0, amp: 3.0, noiseAmp: 0.6, desc: "15V / 3A (최대 45W Super Fast Charging 2.0)" },
-    "galaxys24": { volt: 9.0, amp: 2.77, noiseAmp: 0.7, desc: "9V / 2.77A (최대 25W Super Fast Charging)" },
-    "galaxys23ultra": { volt: 15.0, amp: 3.0, noiseAmp: 0.65, desc: "15V / 3A (최대 45W Super Fast Charging 2.0)" },
-    "galaxys23": { volt: 9.0, amp: 2.77, noiseAmp: 0.75, desc: "9V / 2.77A (최대 25W Super Fast Charging)" },
-    "galaxys22ultra": { volt: 15.0, amp: 3.0, noiseAmp: 0.7, desc: "15V / 3A (최대 45W Super Fast Charging 2.0)" },
-    "galaxys22": { volt: 9.0, amp: 2.77, noiseAmp: 0.8, desc: "9V / 2.77A (최대 25W Super Fast Charging)" },
-    "galaxys21ultra": { volt: 9.0, amp: 2.77, noiseAmp: 0.85, desc: "9V / 2.77A (최대 25W Super Fast Charging)" },
-    "galaxys21": { volt: 9.0, amp: 2.77, noiseAmp: 0.9, desc: "9V / 2.77A (최대 25W Super Fast Charging)" },
-    "galaxys20ultra": { volt: 15.0, amp: 3.0, noiseAmp: 0.9, desc: "15V / 3A (최대 45W Super Fast Charging 2.0)" },
-    "galaxys20": { volt: 9.0, amp: 2.77, noiseAmp: 1.0, desc: "9V / 2.77A (최대 25W Super Fast Charging)" }
+    "galaxys26ultra": { name: "Galaxy S26 Ultra", minV: 4.5, maxV: 16.0, supportV: [5.0, 9.0, 15.0], noiseTol: 0.15, desc: "정격 입력: 5.0V, 9.0V, 15.0V (SFC 2.0 최대 45W)" },
+    "galaxys26": { name: "Galaxy S26", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.18, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W/45W)" },
+    "galaxys25ultra": { name: "Galaxy S25 Ultra", minV: 4.5, maxV: 16.0, supportV: [5.0, 9.0, 15.0], noiseTol: 0.16, desc: "정격 입력: 5.0V, 9.0V, 15.0V (SFC 2.0 최대 45W)" },
+    "galaxys25": { name: "Galaxy S25", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.20, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W/45W)" },
+    "galaxys24ultra": { name: "Galaxy S24 Ultra", minV: 4.5, maxV: 16.0, supportV: [5.0, 9.0, 15.0], noiseTol: 0.18, desc: "정격 입력: 5.0V, 9.0V, 15.0V (SFC 2.0 최대 45W)" },
+    "galaxys24": { name: "Galaxy S24", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.22, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W)" },
+    "galaxys23ultra": { name: "Galaxy S23 Ultra", minV: 4.5, maxV: 16.0, supportV: [5.0, 9.0, 15.0], noiseTol: 0.19, desc: "정격 입력: 5.0V, 9.0V, 15.0V (SFC 2.0 최대 45W)" },
+    "galaxys23": { name: "Galaxy S23", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.23, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W)" },
+    "galaxys22ultra": { name: "Galaxy S22 Ultra", minV: 4.5, maxV: 16.0, supportV: [5.0, 9.0, 15.0], noiseTol: 0.20, desc: "정격 입력: 5.0V, 9.0V, 15.0V (SFC 2.0 최대 45W)" },
+    "galaxys22": { name: "Galaxy S22", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.24, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W)" },
+    "galaxys21ultra": { name: "Galaxy S21 Ultra", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.22, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W)" },
+    "galaxys21": { name: "Galaxy S21", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.25, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W)" },
+    "galaxys20ultra": { name: "Galaxy S20 Ultra", minV: 4.5, maxV: 16.0, supportV: [5.0, 9.0, 15.0], noiseTol: 0.24, desc: "정격 입력: 5.0V, 9.0V, 15.0V (SFC 2.0 최대 45W)" },
+    "galaxys20": { name: "Galaxy S20", minV: 4.5, maxV: 11.5, supportV: [5.0, 9.0], noiseTol: 0.26, desc: "정격 입력: 5.0V, 9.0V (SFC 최대 25W)" }
 };
 
 let chartInstance = null;
 
-function updateDeviceSettings() {
-    calculateAndPlot();
-}
-
 function calculateAndPlot() {
     const deviceKey = document.getElementById("device").value;
+    const vIn = parseFloat(document.getElementById("voltage").value);
+    const noiseIn = parseFloat(document.getElementById("noise").value);
     const R = parseFloat(document.getElementById("resistance").value);
     const C_uf = parseFloat(document.getElementById("capacitance").value);
-    const C = C_uf * 1e-6; 
-    const f_noise = parseFloat(document.getElementById("noiseFreq").value);
+    const C = C_uf * 1e-6; // F 변환
 
+    // 화면 입력값 텍스트 업데이트
+    document.getElementById("voltage-val").innerText = vIn.toFixed(1) + " V";
+    document.getElementById("noise-val").innerText = noiseIn.toFixed(1) + " V";
     document.getElementById("r-val").innerText = R + " Ω";
     document.getElementById("c-val").innerText = C_uf + " μF";
-    document.getElementById("freq-val").innerText = f_noise + " Hz";
 
-    const spec = deviceSpecs[deviceKey];
-    document.getElementById("spec-val").innerText = spec.desc;
+    const dev = deviceSpecs[deviceKey];
+    document.getElementById("spec-val").innerText = dev.desc;
 
+    let voltageStatus = "SAFE";
+    let noiseStatus = "SAFE";
+    let diagnosticMsg = "";
+
+    // 1. [충전 전압 적절성 판단 로직]
+    if (vIn > dev.maxV) {
+        voltageStatus = "DANGER";
+        diagnosticMsg += `❌ <strong>과전압 위험 (동작 불가):</strong> 입력 전압 ${vIn.toFixed(1)}V가 해당 기기의 전압 한계인 ${dev.maxV}V를 초과합니다. 메인보드 소손을 방지하기 위해 단말기가 충전을 즉각 차단합니다.<br><br>`;
+    } else if (vIn < dev.minV) {
+        voltageStatus = "DANGER";
+        diagnosticMsg += `⚠️ <strong>전압 부족 (충전 불가):</strong> 입력 전압 ${vIn.toFixed(1)}V가 기기 구동 최소전압인 ${dev.minV}V보다 낮아 전원 공급이 불가능합니다.<br><br>`;
+    } else if (!dev.supportV.includes(vIn)) {
+        voltageStatus = "WARN";
+        diagnosticMsg += `⚡ <strong>비정격 전압 (호환 주의):</strong> ${vIn.toFixed(1)}V는 해당 모델의 표준 USB-PD / PPS 전압 테이블에 없습니다. 안전을 위해 5V 일반 저속 충전(5W 내외) 모드로 전환됩니다.<br><br>`;
+    } else {
+        diagnosticMsg += `✅ <strong>충전 전압 적합:</strong> 입력 전압 ${vIn.toFixed(1)}V는 해당 단말기의 정격 충전 규격에 부합합니다.<br><br>`;
+    }
+
+    // 2. [저역통과필터 주파수 차단 및 잔류 노이즈 연산]
+    // 모의 스위칭 주파수를 2.5kHz로 가정
+    const f_noise = 2500; 
     const fc = 1 / (2 * Math.PI * R * C);
-    document.getElementById("cutoff-val").innerText = fc.toFixed(2) + " Hz";
-
     const gain = 1 / Math.sqrt(1 + Math.pow((f_noise / fc), 2));
+    const residualNoise = noiseIn * gain;
     const attenuation = (1 - gain) * 100;
-    document.getElementById("atten-val").innerText = attenuation.toFixed(1) + "% 감쇄";
 
+    diagnosticMsg += `🔍 <strong>신호 무결성 분석 (RC LPF):</strong><br>`;
+    diagnosticMsg += `- 설계된 LPF 차단주파수($f_c$): <strong>${fc.toFixed(1)} Hz</strong><br>`;
+    diagnosticMsg += `- 2.5kHz 스위칭 주파수 감쇄율: <strong>${attenuation.toFixed(1)}% 감쇄 완료</strong><br>`;
+    diagnosticMsg += `- 디스플레이 터치 단자로 유입되는 최종 잔류 노이즈: <strong>${residualNoise.toFixed(3)} V</strong> `;
+
+    // 잔류 노이즈가 기기 허용 노이즈 임계값을 초과하는지 대조
+    if (residualNoise > dev.noiseTol) {
+        noiseStatus = "DANGER";
+        diagnosticMsg += `(<span style="color:red; font-weight:bold;">위험: 허용 기준치인 ${dev.noiseTol}V를 초과하여 액정 터치 오작동이 유발될 수 있습니다.</span>)`;
+    } else if (residualNoise > dev.noiseTol * 0.7) {
+        noiseStatus = "WARN";
+        diagnosticMsg += `(<span style="color:orange; font-weight:bold;">주의: 터치 끊김이나 가벼운 씹힘 현상이 발생할 수 있습니다.</span>)`;
+    } else {
+        diagnosticMsg += `(<span style="color:green; font-weight:bold;">정상: 노이즈가 깔끔하게 감쇄되어 안전한 터치 주파수 대역을 확보했습니다.</span>)`;
+    }
+
+    // 종합 판단 상태박스 UI 색상 세팅
+    const statusBox = document.getElementById('status-box');
+    if (voltageStatus === "DANGER" || noiseStatus === "DANGER") {
+        statusBox.textContent = "❌ 경고: 충전 부적합 / 터치 오작동 상태";
+        statusBox.className = "result-box status-danger";
+    } else if (voltageStatus === "WARN" || noiseStatus === "WARN") {
+        statusBox.textContent = "⚡ 주의: 충전 전압 불안정 혹은 미세 노이즈 감지";
+        statusBox.className = "result-box status-warning";
+    } else {
+        statusBox.textContent = "🟢 정상: 안전 정격 충전 및 무결성 확보 상태";
+        statusBox.className = "result-box status-safe";
+    }
+
+    document.getElementById('analysis-text').innerHTML = diagnosticMsg;
+
+    // 3. [시간축 그래프 렌더링]
     const labels = [];
     const rawSignal = [];
     const filteredSignal = [];
     
-    const V_dc = spec.volt; 
-    const A_noise = spec.noiseAmp; 
-    
-    const steps = 200;
-    const t_max = 0.01; 
+    const steps = 150;
+    const t_max = 0.002; // 2ms 관찰
     
     for (let i = 0; i <= steps; i++) {
         const t = (t_max / steps) * i;
-        labels.push((t * 1000).toFixed(2)); 
+        labels.push((t * 1000).toFixed(2));
         
-        const noise = A_noise * Math.sin(2 * Math.PI * f_noise * t);
-        const V_in = V_dc + noise;
-        rawSignal.push(V_in);
+        // 원본 전압 신호
+        const raw_v = vIn + noiseIn * Math.sin(2 * Math.PI * f_noise * t);
+        rawSignal.push(raw_v);
         
+        // 필터 통과 전압 신호 (위상 지연 계산)
         const phaseShift = -Math.atan(2 * Math.PI * f_noise * R * C);
-        const V_out = V_dc + (A_noise * gain) * Math.sin(2 * Math.PI * f_noise * t + phaseShift);
-        filteredSignal.push(V_out);
+        const filtered_v = vIn + residualNoise * Math.sin(2 * Math.PI * f_noise * t + phaseShift);
+        filteredSignal.push(filtered_v);
     }
 
+    // Chart.js 인스턴스 재생성
     const ctx = document.getElementById('signalChart').getContext('2d');
-    
     if (chartInstance) {
         chartInstance.destroy();
     }
@@ -258,15 +428,15 @@ function calculateAndPlot() {
             labels: labels,
             datasets: [
                 {
-                    label: '필터 통과 전 신호 (노이즈 유입 상태)',
+                    label: '유입 전압 (노이즈 섞임)',
                     data: rawSignal,
-                    borderColor: 'rgba(217, 83, 79, 0.8)',
-                    borderWidth: 2,
+                    borderColor: 'rgba(217, 83, 79, 0.7)',
+                    borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false
                 },
                 {
-                    label: '필터 통과 후 신호 (노이즈 필터링 상태)',
+                    label: 'RC 필터 통과 전압 (보정 신호)',
                     data: filteredSignal,
                     borderColor: 'rgba(40, 167, 69, 0.9)',
                     borderWidth: 2.5,
@@ -280,29 +450,22 @@ function calculateAndPlot() {
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    title: {
-                        display: true,
-                        text: '시간 (ms)'
-                    }
+                    title: { display: true, text: '시간 (ms)', font: { size: 10 } }
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: '전압 (V)'
-                    },
-                    min: V_dc - (A_noise * 2),
-                    max: V_dc + (A_noise * 2)
+                    title: { display: true, text: '전압 (V)', font: { size: 10 } },
+                    min: vIn - (noiseIn * 1.5),
+                    max: vIn + (noiseIn * 1.5)
                 }
             },
             plugins: {
-                legend: {
-                    position: 'top'
-                }
+                legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
             }
         }
     });
 }
 
+// 최초 실행
 window.onload = function() {
     calculateAndPlot();
 };
